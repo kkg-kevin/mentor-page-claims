@@ -10,8 +10,10 @@ import {
 } from "./ui/select";
 import { ChevronDown, ChevronUp, FileText, Calendar, DollarSign } from "lucide-react";
 
-interface Claim {
+export interface Claim {
   id: string;
+  courseId?: string;
+  courseName?: string;
   teachingMethod: string;
   paymentType: "full" | "advance";
   amount: number;
@@ -22,7 +24,7 @@ interface Claim {
   progress: number;
 }
 
-const mockClaims: Claim[] = [
+export const initialClaims: Claim[] = [
   {
     id: "CLM-001",
     teachingMethod: "Physical Location",
@@ -77,14 +79,18 @@ const mockClaims: Claim[] = [
   },
 ];
 
-export function ClaimsSection() {
+interface ClaimsSectionProps {
+  claims: Claim[];
+}
+
+export function ClaimsSection({ claims }: ClaimsSectionProps) {
   const [expandedClaim, setExpandedClaim] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [methodFilter, setMethodFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("date-desc");
 
   // Filter claims
-  let filteredClaims = mockClaims;
+  let filteredClaims = claims;
 
   if (statusFilter !== "all") {
     filteredClaims = filteredClaims.filter((claim) => claim.status === statusFilter);
@@ -210,7 +216,11 @@ export function ClaimsSection() {
                           {claim.status.charAt(0).toUpperCase() + claim.status.slice(1)}
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">{claim.teachingMethod}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {claim.courseName
+                          ? `${claim.courseName} - ${claim.teachingMethod}`
+                          : claim.teachingMethod}
+                      </p>
                     </div>
 
                     <div className="hidden md:flex items-center gap-6">

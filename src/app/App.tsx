@@ -1,14 +1,17 @@
 import { useMemo, useState } from "react";
 import {
+  type CourseProgressRecord,
   courseProgressRecords,
   getCourseProgress,
+  getCourseStatus,
   getTeachingMethodMeta,
   TeachingMethodCard,
 } from "./components/TeachingMethodCard";
-import { ClaimsSection } from "./components/ClaimsSection";
+import { ClaimsSection, initialClaims, type Claim } from "./components/ClaimsSection";
 import { StatsOverview } from "./components/StatsOverview";
 import { Toaster } from "./components/ui/sonner";
 import { Badge } from "./components/ui/badge";
+import { Button } from "./components/ui/button";
 import {
   Table,
   TableBody,
@@ -18,16 +21,13 @@ import {
   TableRow,
 } from "./components/ui/table";
 
-const courseSummary = {
-  activeCourses: 3,
-  teachingMethods: 3,
-  learnerGroup: "Junior Coding Track",
-};
-
 export default function App() {
+  const [claims, setClaims] = useState<Claim[]>(initialClaims);
+  const [completedClaimCourseIds, setCompletedClaimCourseIds] = useState<string[]>([]);
   const progressTimeline = useMemo(
     () =>
       [...courseProgressRecords]
+        .filter((course) => !completedClaimCourseIds.includes(course.id))
         .sort(
           (a, b) =>
             new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime(),
@@ -38,71 +38,95 @@ export default function App() {
             ...course,
             method,
             progress: getCourseProgress(course),
+            status: getCourseStatus(course),
             isCurrent: index === 0,
           };
         }),
-    [],
+    [completedClaimCourseIds],
   );
   const [selectedCourseId, setSelectedCourseId] = useState(
-    progressTimeline[0].id,
+    progressTimeline[0]?.id ?? "",
   );
+  const [showAllCourses, setShowAllCourses] = useState(false);
   const selectedCourse =
     progressTimeline.find((item) => item.id === selectedCourseId) ?? progressTimeline[0];
+  const visibleTimeline = showAllCourses ? progressTimeline : progressTimeline.slice(0, 3);
+
+  const handleSubmitClaim = ({
+    course,
+    teachingMethod,
+    paymentType,
+    etimsDocument,
+    progress,
+  }: {
+    course: CourseProgressRecord;
+    teachingMethod: string;
+    paymentType: "full" | "advance";
+    etimsDocument: string;
+    progress: number;
+  }) => {
+    const nextClaimNumber = claims.length + 1;
+    const submittedDate = new Date().toISOString().slice(0, 10);
+    const amount = paymentType === "full" ? 50000 : 15000;
+
+    const newClaim: Claim = {
+      id: `CLM-${String(nextClaimNumber).padStart(3, "0")}`,
+      courseId: course.id,
+      courseName: course.courseName,
+      teachingMethod,
+      paymentType,
+      amount,
+      status: "pending",
+      submittedDate,
+      etimsDocument,
+      progress: Math.round(progress),
+    };
+
+    setClaims((currentClaims) => [newClaim, ...currentClaims]);
+
+    if (paymentType === "full") {
+      setCompletedClaimCourseIds((currentIds) => [...currentIds, course.id]);
+      setSelectedCourseId((currentId) => {
+        if (currentId !== course.id) {
+          return currentId;
+        }
+
+        const nextCourse = courseProgressRecords.find(
+          (record) =>
+            record.id !== course.id && !completedClaimCourseIds.includes(record.id),
+        );
+
+        return nextCourse?.id ?? "";
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-6 space-y-8">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-          <h1 className="text-3xl font-bold text-[#25476a]">Mentor Payment Dashboard</h1>
-          <p className="text-gray-600 mt-2">Track your teaching progress and manage payment claims</p>
-        </div>
-
         {/* Stats Overview */}
         <StatsOverview />
 
         {/* Teaching Methods Section */}
         <div className="space-y-4">
-          <div className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-[#38aae1]">
-                Courses Progress
-              </p>
-              <h2 className="mt-1 text-2xl font-semibold text-[#25476a]">
-                Mentor Course Delivery
-              </h2>
-              <p className="mt-1 text-sm text-gray-600">
-                Track progress for each course inside physical, home, and online teaching methods.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3 md:min-w-[480px]">
-              <div>
-                <p className="text-xs font-medium text-gray-500">Active Courses</p>
-                <p className="font-semibold text-[#25476a]">
-                  {courseSummary.activeCourses}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500">Teaching Methods</p>
-                <p className="font-semibold text-[#25476a]">
-                  {courseSummary.teachingMethods}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500">Learners</p>
-                <p className="font-semibold text-[#25476a]">
-                  {courseSummary.learnerGroup}
-                </p>
-              </div>
-            </div>
-          </div>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
             <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-              <div className="border-b border-gray-200 px-5 py-4">
-                <h3 className="font-semibold text-[#25476a]">Course Activity Timeline</h3>
-                <p className="mt-1 text-sm text-gray-600">
-                  Most recent progress is listed first. Select a row to view the full progress card.
-                </p>
+              <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="font-semibold text-[#25476a]">Course Activity Timeline</h3>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Most recent progress is listed first. Select a row to view the full progress card.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAllCourses((current) => !current)}
+                  className="self-start sm:self-auto"
+                >
+                  {showAllCourses ? "Show latest" : "View all"}
+                </Button>
               </div>
               <Table>
                 <TableHeader>
@@ -114,7 +138,7 @@ export default function App() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {progressTimeline.map((item) => {
+                  {visibleTimeline.map((item) => {
                     const Icon = item.method.icon;
                     const isSelected = selectedCourseId === item.id;
 
@@ -151,7 +175,7 @@ export default function App() {
                                 )}
                               </div>
                               <p className="mt-1 max-w-md text-xs text-gray-500">
-                                {item.courseCode} - {item.status}
+                                {item.status}
                               </p>
                             </div>
                           </div>
@@ -183,12 +207,17 @@ export default function App() {
               </Table>
             </div>
 
-            <TeachingMethodCard course={selectedCourse} />
+            {selectedCourse && (
+              <TeachingMethodCard
+                course={selectedCourse}
+                onSubmitClaim={handleSubmitClaim}
+              />
+            )}
           </div>
         </div>
 
         {/* Claims Section */}
-        <ClaimsSection />
+        <ClaimsSection claims={claims} />
       </div>
       <Toaster />
     </div>
