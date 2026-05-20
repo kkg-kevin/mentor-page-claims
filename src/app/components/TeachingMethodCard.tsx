@@ -6,55 +6,157 @@ import { useState } from "react";
 import { RequestPaymentDialog } from "./RequestPaymentDialog";
 
 interface TeachingMethodCardProps {
-  type: "physical" | "home" | "online";
+  course: CourseProgressRecord;
 }
 
-// Mock data for different teaching methods
-const mockData = {
+export type TeachingMethodType = "physical" | "home" | "online";
+
+const teachingMethodMeta = {
   physical: {
-    title: "Physical Location",
+    label: "Physical Location",
     icon: MapPin,
-    metrics: [
-      { label: "Sessions", value: 8, total: 10 },
-      { label: "Course Completion", value: 75, total: 100 },
-      { label: "Location/School", value: 1, total: 1 },
-      { label: "Assignments Graded", value: 18, total: 25 },
-      { label: "Reports Submitted", value: 3, total: 4 },
-      { label: "Attendance", value: 85, total: 100 },
-    ],
+    description: "In-person delivery",
   },
   home: {
-    title: "Home Location",
+    label: "Home Location",
     icon: Home,
-    metrics: [
-      { label: "Sessions", value: 10, total: 12 },
-      { label: "Course Completion", value: 90, total: 100 },
-      { label: "Reports Submitted", value: 2, total: 3 },
-      { label: "Assignments Graded", value: 15, total: 20 },
-    ],
+    description: "Home-based delivery",
   },
   online: {
-    title: "Online",
+    label: "Online",
     icon: Monitor,
-    metrics: [
-      { label: "Sessions", value: 5, total: 8 },
-      { label: "Course Completion", value: 60, total: 100 },
-      { label: "Attendance", value: 70, total: 100 },
-    ],
+    description: "Virtual delivery",
   },
 };
 
-export function TeachingMethodCard({ type }: TeachingMethodCardProps) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const data = mockData[type];
-  const Icon = data.icon;
+export interface CourseProgressRecord {
+  id: string;
+  teachingMethod: TeachingMethodType;
+  courseName: string;
+  courseCode: string;
+  lastUpdated: string;
+  status: string;
+  metrics: Array<{
+    label: "Course Sessions" | "Lesson Content Covered" | "Learner Attendance" | "Report";
+    value: number;
+    total: number;
+    format: "count" | "percent";
+  }>;
+}
 
-  // Calculate overall progress (weighted equally)
-  const overallProgress =
-    data.metrics.reduce((sum, metric) => {
+export const courseProgressRecords: CourseProgressRecord[] = [
+  {
+    id: "physical-game-design",
+    teachingMethod: "physical",
+    courseName: "Game Design",
+    courseCode: "GD-101",
+    lastUpdated: "May 20, 2026",
+    status: "Most current",
+    metrics: [
+      { label: "Course Sessions", value: 8, total: 10, format: "count" },
+      { label: "Lesson Content Covered", value: 2, total: 12, format: "count" },
+      { label: "Learner Attendance", value: 85, total: 100, format: "percent" },
+      { label: "Report", value: 80, total: 100, format: "percent" },
+    ],
+  },
+  {
+    id: "home-robotics",
+    teachingMethod: "home",
+    courseName: "Robotics",
+    courseCode: "ROB-204",
+    lastUpdated: "May 19, 2026",
+    status: "Reviewed",
+    metrics: [
+      { label: "Course Sessions", value: 12, total: 12, format: "count" },
+      { label: "Lesson Content Covered", value: 2, total: 12, format: "count" },
+      { label: "Learner Attendance", value: 88, total: 100, format: "percent" },
+      { label: "Report", value: 92, total: 100, format: "percent" },
+    ],
+  },
+  {
+    id: "online-animation",
+    teachingMethod: "online",
+    courseName: "Animation",
+    courseCode: "ANI-118",
+    lastUpdated: "May 18, 2026",
+    status: "Reviewed",
+    metrics: [
+      { label: "Course Sessions", value: 6, total: 8, format: "count" },
+      { label: "Lesson Content Covered", value: 2, total: 12, format: "count" },
+      { label: "Learner Attendance", value: 76, total: 100, format: "percent" },
+      { label: "Report", value: 70, total: 100, format: "percent" },
+    ],
+  },
+  {
+    id: "physical-animation",
+    teachingMethod: "physical",
+    courseName: "Animation",
+    courseCode: "ANI-118",
+    lastUpdated: "May 17, 2026",
+    status: "In progress",
+    metrics: [
+      { label: "Course Sessions", value: 7, total: 10, format: "count" },
+      { label: "Lesson Content Covered", value: 2, total: 12, format: "count" },
+      { label: "Learner Attendance", value: 81, total: 100, format: "percent" },
+      { label: "Report", value: 74, total: 100, format: "percent" },
+    ],
+  },
+  {
+    id: "home-game-design",
+    teachingMethod: "home",
+    courseName: "Game Design",
+    courseCode: "GD-101",
+    lastUpdated: "May 16, 2026",
+    status: "In progress",
+    metrics: [
+      { label: "Course Sessions", value: 5, total: 8, format: "count" },
+      { label: "Lesson Content Covered", value: 2, total: 12, format: "count" },
+      { label: "Learner Attendance", value: 74, total: 100, format: "percent" },
+      { label: "Report", value: 66, total: 100, format: "percent" },
+    ],
+  },
+  {
+    id: "online-robotics",
+    teachingMethod: "online",
+    courseName: "Robotics",
+    courseCode: "ROB-204",
+    lastUpdated: "May 15, 2026",
+    status: "Needs update",
+    metrics: [
+      { label: "Course Sessions", value: 4, total: 8, format: "count" },
+      { label: "Lesson Content Covered", value: 2, total: 12, format: "count" },
+      { label: "Learner Attendance", value: 69, total: 100, format: "percent" },
+      { label: "Report", value: 58, total: 100, format: "percent" },
+    ],
+  },
+];
+
+export function getCourseProgress(course: CourseProgressRecord) {
+  return (
+    course.metrics.reduce((sum, metric) => {
       return sum + (metric.value / metric.total) * 100;
-    }, 0) / data.metrics.length;
+    }, 0) / course.metrics.length
+  );
+}
 
+export function getTeachingMethodMeta(type: TeachingMethodType) {
+  return teachingMethodMeta[type];
+}
+
+function formatMetricValue(metric: CourseProgressRecord["metrics"][number]) {
+  if (metric.format === "percent") {
+    return `${metric.value}%`;
+  }
+
+  return `${metric.value}/${metric.total}`;
+}
+
+export function TeachingMethodCard({ course }: TeachingMethodCardProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const method = teachingMethodMeta[course.teachingMethod];
+  const Icon = method.icon;
+
+  const overallProgress = getCourseProgress(course);
   const isEligibleForAdvance = overallProgress >= 30;
   const isEligibleForFull = overallProgress >= 100;
 
@@ -65,7 +167,7 @@ export function TeachingMethodCard({ type }: TeachingMethodCardProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Icon className="h-5 w-5" />
-              <CardTitle className="text-lg">{data.title}</CardTitle>
+              <CardTitle className="text-lg">{course.courseName}</CardTitle>
             </div>
             <Badge
               variant={isEligibleForFull ? "default" : "secondary"}
@@ -82,10 +184,19 @@ export function TeachingMethodCard({ type }: TeachingMethodCardProps) {
           </div>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
+          <div>
+            <p className="text-sm font-semibold text-[#25476a]">
+              {method.label} - {course.courseCode}
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              {method.description}. Last updated {course.lastUpdated}.
+            </p>
+          </div>
+
           {/* Overall Progress */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="font-medium text-gray-700">Overall Progress</span>
+              <span className="font-medium text-gray-700">Course Progress</span>
               <span className="text-[#25476a] font-semibold">{Math.round(overallProgress)}%</span>
             </div>
             <div className="h-3 w-full bg-gray-200 rounded-full overflow-hidden">
@@ -98,14 +209,14 @@ export function TeachingMethodCard({ type }: TeachingMethodCardProps) {
 
           {/* Individual Metrics */}
           <div className="space-y-3 pt-2">
-            {data.metrics.map((metric, index) => {
+            {course.metrics.map((metric, index) => {
               const percentage = (metric.value / metric.total) * 100;
               return (
                 <div key={index} className="space-y-1">
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-600">{metric.label}</span>
                     <span className="text-gray-700 font-medium">
-                      {metric.value}/{metric.total}
+                      {formatMetricValue(metric)}
                     </span>
                   </div>
                   <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
@@ -129,7 +240,7 @@ export function TeachingMethodCard({ type }: TeachingMethodCardProps) {
                     <span className="font-medium">Eligible for full payment (100% complete)</span>
                   ) : (
                     <span className="font-medium">
-                      Eligible for advance payment (≥30% complete)
+                      Eligible for advance payment (&gt;=30% complete)
                     </span>
                   )}
                 </div>
@@ -151,7 +262,8 @@ export function TeachingMethodCard({ type }: TeachingMethodCardProps) {
       <RequestPaymentDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        teachingMethod={data.title}
+        courseName={course.courseName}
+        teachingMethod={method.label}
         progress={overallProgress}
       />
     </>

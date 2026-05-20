@@ -16,6 +16,7 @@ import { toast } from "sonner";
 interface RequestPaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  courseName: string;
   teachingMethod: string;
   progress: number;
 }
@@ -23,6 +24,7 @@ interface RequestPaymentDialogProps {
 export function RequestPaymentDialog({
   open,
   onOpenChange,
+  courseName,
   teachingMethod,
   progress,
 }: RequestPaymentDialogProps) {
@@ -92,7 +94,8 @@ export function RequestPaymentDialog({
         <DialogHeader>
           <DialogTitle className="text-[#25476a]">Request Payment</DialogTitle>
           <DialogDescription>
-            Submit a payment claim for {teachingMethod} (Progress: {Math.round(progress)}%)
+            Submit a payment claim for {courseName} via {teachingMethod} (Progress:{" "}
+            {Math.round(progress)}%)
           </DialogDescription>
         </DialogHeader>
 
