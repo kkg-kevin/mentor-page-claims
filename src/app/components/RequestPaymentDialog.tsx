@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,10 @@ interface RequestPaymentDialogProps {
   courseName: string;
   teachingMethod: string;
   progress: number;
+  onSubmitClaim: (claim: {
+    paymentType: "full" | "advance";
+    etimsDocument: string;
+  }) => void;
 }
 
 export function RequestPaymentDialog({
@@ -27,12 +31,19 @@ export function RequestPaymentDialog({
   courseName,
   teachingMethod,
   progress,
+  onSubmitClaim,
 }: RequestPaymentDialogProps) {
   const [paymentType, setPaymentType] = useState<"full" | "advance">("full");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const isFullPaymentEligible = progress >= 100;
+
+  useEffect(() => {
+    if (open) {
+      setPaymentType(isFullPaymentEligible ? "full" : "advance");
+    }
+  }, [isFullPaymentEligible, open]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -79,6 +90,11 @@ export function RequestPaymentDialog({
       toast.error("Please upload an eTIMS document before submitting.");
       return;
     }
+
+    onSubmitClaim({
+      paymentType,
+      etimsDocument: uploadedFile.name,
+    });
 
     toast.success("Payment claim submitted successfully!");
     onOpenChange(false);
