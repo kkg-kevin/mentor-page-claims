@@ -27,7 +27,7 @@ export interface Claim {
 export const initialClaims: Claim[] = [
   {
     id: "CLM-001",
-    teachingMethod: "Physical Location",
+    teachingMethod: "Physical Classes",
     paymentType: "full",
     amount: 50000,
     status: "paid",
@@ -38,7 +38,7 @@ export const initialClaims: Claim[] = [
   },
   {
     id: "CLM-002",
-    teachingMethod: "Online",
+    teachingMethod: "Online Classes",
     paymentType: "advance",
     amount: 15000,
     status: "paid",
@@ -49,7 +49,7 @@ export const initialClaims: Claim[] = [
   },
   {
     id: "CLM-003",
-    teachingMethod: "Home Location",
+    teachingMethod: "Home Sessions",
     paymentType: "advance",
     amount: 20000,
     status: "pending",
@@ -59,7 +59,7 @@ export const initialClaims: Claim[] = [
   },
   {
     id: "CLM-004",
-    teachingMethod: "Physical Location",
+    teachingMethod: "Physical Classes",
     paymentType: "full",
     amount: 50000,
     status: "pending",
@@ -69,7 +69,7 @@ export const initialClaims: Claim[] = [
   },
   {
     id: "CLM-005",
-    teachingMethod: "Online",
+    teachingMethod: "Online Classes",
     paymentType: "advance",
     amount: 15000,
     status: "pending",
@@ -167,9 +167,11 @@ export function ClaimsSection({ claims }: ClaimsSectionProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Methods</SelectItem>
-              <SelectItem value="Physical Location">Physical Location</SelectItem>
-              <SelectItem value="Home Location">Home Location</SelectItem>
-              <SelectItem value="Online">Online</SelectItem>
+              <SelectItem value="Physical Classes">Physical Classes</SelectItem>
+              <SelectItem value="Home Sessions">Home Sessions</SelectItem>
+              <SelectItem value="Online Classes">Online Classes</SelectItem>
+              <SelectItem value="Google Meet Classes">Google Meet Classes</SelectItem>
+              <SelectItem value="Center Sessions">Center Sessions</SelectItem>
             </SelectContent>
           </Select>
 
