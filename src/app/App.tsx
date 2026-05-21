@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   type CourseProgressRecord,
+  type TeachingMethodType,
   courseProgressRecords,
   getCourseProgress,
   getCourseStatus,
@@ -50,6 +51,87 @@ const assignmentStateLabels: Record<AssignmentState, string> = {
 
 const sessionRate = 900;
 const sessionDuration = "1 hour";
+
+const activityViewByMethod: Record<
+  TeachingMethodType,
+  {
+    overviewDescription: string;
+    sessionSummaryDescription: string;
+    sessionHeading: string;
+    attendanceHeading: string;
+    attendanceLabel: string;
+    participantLabel: string;
+    assignmentHeading: string;
+    reportHeading: string;
+    paymentLabel: string;
+  }
+> = {
+  physical: {
+    overviewDescription:
+      "Track physical class sessions, learner attendance, assignments, and reports.",
+    sessionSummaryDescription:
+      "Simple status for each completed physical location session.",
+    sessionHeading: "Physical Sessions",
+    attendanceHeading: "Attendance",
+    attendanceLabel: "Learners present",
+    participantLabel: "learners",
+    assignmentHeading: "Assignment",
+    reportHeading: "Session Report",
+    paymentLabel: "Physical session payment total",
+  },
+  home: {
+    overviewDescription:
+      "Track home-based sessions, learner attendance, assignments, and visit reports.",
+    sessionSummaryDescription:
+      "Simple status for each completed home location session.",
+    sessionHeading: "Home Sessions",
+    attendanceHeading: "Home Attendance",
+    attendanceLabel: "Learners present",
+    participantLabel: "learners",
+    assignmentHeading: "Home Assignment",
+    reportHeading: "Visit Report",
+    paymentLabel: "Home session payment total",
+  },
+  online: {
+    overviewDescription:
+      "Track online sessions, learner attendance, assignments, and class reports.",
+    sessionSummaryDescription:
+      "Simple status for each completed online class session.",
+    sessionHeading: "Online Sessions",
+    attendanceHeading: "Online Attendance",
+    attendanceLabel: "Learners joined",
+    participantLabel: "learners",
+    assignmentHeading: "Online Assignment",
+    reportHeading: "Class Report",
+    paymentLabel: "Online session payment total",
+  },
+  center: {
+    overviewDescription:
+      "Track center sessions, learner attendance, assignments, and reports.",
+    sessionSummaryDescription:
+      "Simple status for each completed center session.",
+    sessionHeading: "Center Sessions",
+    attendanceHeading: "Attendance",
+    attendanceLabel: "Learners present",
+    participantLabel: "learners",
+    assignmentHeading: "Assignment",
+    reportHeading: "Report",
+    paymentLabel: "Center session payment total",
+  },
+  "google-meet": {
+    overviewDescription:
+      "Track Google Meet sessions, learner joins, assignments, and session reports.",
+    sessionSummaryDescription:
+      "Simple status for each completed Google Meet session.",
+    sessionHeading: "Google Meet Sessions",
+    attendanceHeading: "Meet Attendance",
+    attendanceLabel: "Learners joined",
+    participantLabel: "learners",
+    assignmentHeading: "Meet Assignment",
+    reportHeading: "Meet Report",
+    paymentLabel: "Google Meet payment total",
+  },
+};
 
 type CourseTimelineItem = CourseProgressRecord & {
   method: ReturnType<typeof getTeachingMethodMeta>;
@@ -130,8 +212,12 @@ function CourseDetailPage({
   }) => void;
 }) {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [selectedPaymentType, setSelectedPaymentType] = useState<"full" | "advance">(
+    "advance",
+  );
   const Icon = course.method.icon;
   const totalMentorPayment = sessionDetails.length * sessionRate;
+  const activityView = activityViewByMethod[course.teachingMethod];
   const createdReports = sessionDetails.filter((session) => session.reportCreated).length;
   const gradedAssignments = sessionDetails.filter(
     (session) => session.assignmentState === "graded",
@@ -139,14 +225,14 @@ function CourseDetailPage({
   const plannedSessions = getMetric(course, "Sessions")?.total ?? sessionDetails.length;
   const completedSessionProgress =
     plannedSessions > 0 ? (sessionDetails.length / plannedSessions) * 100 : 0;
-  const summaryText = `${sessionDetails.length} sessions completed. ${createdReports} reports created. ${gradedAssignments} assignments graded. Estimated mentor payment is ${formatCurrency(totalMentorPayment)}.`;
+  const summaryText = `${sessionDetails.length} ${activityView.sessionHeading.toLowerCase()} completed. ${createdReports} ${activityView.reportHeading.toLowerCase()}s created. ${gradedAssignments} assignments graded. Estimated mentor payment is ${formatCurrency(totalMentorPayment)}.`;
   const isEligibleForAdvance = course.progress >= 30;
 
   return (
     <>
       <div className="space-y-6">
         <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-5 border-b border-gray-200 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="border-b border-gray-200 px-5 py-5">
             <div className="flex items-start gap-4">
               <Button
                 type="button"
@@ -175,11 +261,6 @@ function CourseDetailPage({
                 </p>
               </div>
             </div>
-
-            <div className="rounded-lg bg-[#25476a] px-5 py-4 text-white">
-              <p className="text-xs font-medium text-white/75">Total Payment</p>
-              <p className="mt-1 text-2xl font-bold">{formatCurrency(totalMentorPayment)}</p>
-            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -188,7 +269,7 @@ function CourseDetailPage({
                 <div>
                   <h3 className="font-semibold text-[#25476a]">General Overview</h3>
                   <p className="mt-1 text-sm text-gray-600">
-                    Course progress, attendance, reports, and assignments in one place.
+                    {activityView.overviewDescription}
                   </p>
                 </div>
                 <Badge className="bg-[#38aae1] text-white hover:bg-[#38aae1]">
@@ -242,146 +323,150 @@ function CourseDetailPage({
               <p className="mt-2 text-sm text-gray-600">
                 Request payment from this course page after reviewing the progress and session summary.
               </p>
-              <Button
-                type="button"
-                onClick={() => setIsPaymentDialogOpen(true)}
-                disabled={!isEligibleForAdvance}
-                className="mt-4 w-full bg-[#25476a] hover:bg-[#25476a]/90 disabled:bg-gray-300"
-              >
-                {isEligibleForAdvance ? "Request Payment" : "Progress below 30%"}
-              </Button>
+              <div className="mt-4 grid grid-cols-1 gap-2">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPaymentType("advance");
+                    setIsPaymentDialogOpen(true);
+                  }}
+                  disabled={!isEligibleForAdvance}
+                  className="w-full bg-[#25476a] hover:bg-[#25476a]/90 disabled:bg-gray-300"
+                >
+                  Advance Payment
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPaymentType("full");
+                    setIsPaymentDialogOpen(true);
+                  }}
+                  disabled={course.progress < 100}
+                  variant="outline"
+                  className="w-full border-[#25476a] text-[#25476a] hover:bg-[#25476a]/10 disabled:border-gray-200 disabled:text-gray-400"
+                >
+                  Full Payment
+                </Button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-            <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="font-semibold text-[#25476a]">Session Summary</h3>
-                <p className="mt-1 text-sm text-gray-600">
-                  Simple status for each completed session.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Badge className="bg-[#25476a] text-white hover:bg-[#25476a]">
-                  {sessionDetails.length}/{plannedSessions} sessions
-                </Badge>
-                <Badge className="bg-[#38aae1] text-white hover:bg-[#38aae1]">
-                  {Math.round(completedSessionProgress)}% complete
-                </Badge>
-              </div>
+        <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="font-semibold text-[#25476a]">Session Summary</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                {activityView.sessionSummaryDescription}
+              </p>
             </div>
-
-            <div className="divide-y divide-gray-100">
-              {sessionDetails.map((session) => (
-                <div
-                  key={session.session}
-                  className="grid grid-cols-1 gap-4 px-5 py-4 lg:grid-cols-[150px_minmax(0,1fr)_180px_150px_120px]"
-                >
-                  <div>
-                    <p className="font-semibold text-[#25476a]">Session {session.session}</p>
-                    <p className="mt-1 text-xs text-gray-500">{sessionDuration}</p>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between gap-3 text-sm">
-                      <span className="text-gray-600">Attendance</span>
-                      <span className="font-semibold text-gray-800">
-                        {session.studentsPresent} of {studentCount} learners
-                      </span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-gray-200">
-                      <div
-                        className="h-full bg-[#38aae1]"
-                        style={{ width: `${session.attendancePercentage}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      {session.attendancePercentage}% attendance
-                    </p>
-                  </div>
-
-                  <div className="flex items-start lg:justify-center">
-                    <Badge className={assignmentStateStyles[session.assignmentState]}>
-                      {assignmentStateLabels[session.assignmentState]}
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-start lg:justify-center">
-                    <Badge
-                      variant="outline"
-                      className={
-                        session.reportCreated
-                          ? "border-green-200 bg-green-50 text-green-700"
-                          : "border-gray-200 bg-gray-50 text-gray-600"
-                      }
-                    >
-                      {session.reportCreated ? "Report created" : "Report not created"}
-                    </Badge>
-                  </div>
-
-                  <div className="text-sm lg:text-right">
-                    <p className="text-gray-500">Payment</p>
-                    <p className="font-semibold text-[#25476a]">
-                      {formatCurrency(sessionRate)}
-                    </p>
-                  </div>
-                </div>
-              ))}
+            <div className="flex flex-wrap gap-2">
+              <Badge className="bg-[#25476a] text-white hover:bg-[#25476a]">
+                {sessionDetails.length}/{plannedSessions} sessions
+              </Badge>
+              <Badge className="bg-[#38aae1] text-white hover:bg-[#38aae1]">
+                {Math.round(completedSessionProgress)}% complete
+              </Badge>
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-              <div className="border-b border-gray-200 px-5 py-4">
-                <h3 className="font-semibold text-[#25476a]">Mentor Payment</h3>
-                <p className="mt-1 text-sm text-gray-600">Calculated per completed session.</p>
-              </div>
-              <div className="space-y-4 p-5">
-                {[
-                  ["Price per session", formatCurrency(sessionRate)],
-                  ["Time", sessionDuration],
-                  ["Completed sessions", String(sessionDetails.length)],
-                  ["Total amount", formatCurrency(totalMentorPayment)],
-                ].map(([label, value]) => (
-                  <div key={label} className="flex items-center justify-between gap-4">
-                    <span className="text-sm text-gray-600">{label}</span>
-                    <span className="font-semibold text-[#25476a]">{value}</span>
-                  </div>
-                ))}
-                <div className="rounded-lg bg-[#25476a] p-4 text-white">
-                  <p className="text-xs font-medium text-white/75">
-                    Total payment to mentor for this course
-                  </p>
-                  <p className="mt-1 text-2xl font-bold">
-                    {formatCurrency(totalMentorPayment)}
-                  </p>
-                </div>
-              </div>
-            </div>
+          <div className="hidden grid-cols-[150px_minmax(0,1fr)_180px_150px] gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:grid">
+            <span>{activityView.sessionHeading}</span>
+            <span>{activityView.attendanceHeading}</span>
+            <span className="text-center">{activityView.assignmentHeading}</span>
+            <span className="text-center">{activityView.reportHeading}</span>
+          </div>
 
-            <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="font-semibold text-[#25476a]">Course Details</h3>
-              <div className="mt-4 space-y-3 text-sm">
-                <div className="flex justify-between gap-4">
-                  <span className="text-gray-600">Course name</span>
-                  <span className="font-semibold text-gray-800">{course.courseName}</span>
+          <div className="divide-y divide-gray-100">
+            {sessionDetails.map((session) => (
+              <div
+                key={session.session}
+                className="grid grid-cols-1 gap-4 px-5 py-4 lg:grid-cols-[150px_minmax(0,1fr)_180px_150px]"
+              >
+                <div>
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:hidden">
+                    {activityView.sessionHeading}
+                  </p>
+                  <p className="font-semibold text-[#25476a]">Session {session.session}</p>
+                  <p className="mt-1 text-xs text-gray-500">{sessionDuration}</p>
                 </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-gray-600">Activity type</span>
-                  <span className="font-semibold text-gray-800">{course.method.label}</span>
+
+                <div className="space-y-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 lg:hidden">
+                    {activityView.attendanceHeading}
+                  </p>
+                  <div className="flex justify-between gap-3 text-sm">
+                    <span className="text-gray-600">{activityView.attendanceLabel}</span>
+                    <span className="font-semibold text-gray-800">
+                      {session.studentsPresent} of {studentCount} {activityView.participantLabel}
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+                    <div
+                      className="h-full bg-[#38aae1]"
+                      style={{ width: `${session.attendancePercentage}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    {session.attendancePercentage}% attendance
+                  </p>
                 </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-gray-600">Last update</span>
-                  <span className="font-semibold text-gray-800">{course.lastUpdated}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-gray-600">Overall progress</span>
-                  <span className="font-semibold text-gray-800">
-                    {Math.round(course.progress)}%
+
+                <div className="flex items-start lg:justify-center">
+                  <span className="mr-3 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:hidden">
+                    {activityView.assignmentHeading}
                   </span>
+                  <Badge className={assignmentStateStyles[session.assignmentState]}>
+                    {assignmentStateLabels[session.assignmentState]}
+                  </Badge>
                 </div>
+
+                <div className="flex items-start lg:justify-center">
+                  <span className="mr-3 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:hidden">
+                    {activityView.reportHeading}
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className={
+                      session.reportCreated
+                        ? "border-green-200 bg-green-50 text-green-700"
+                        : "border-gray-200 bg-gray-50 text-gray-600"
+                    }
+                  >
+                    {session.reportCreated ? "Report created" : "Report not created"}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="border-t border-gray-200 bg-gray-50 px-5 py-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4 md:items-end">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Payment
+                </p>
+                <p className="mt-1 font-semibold text-[#25476a]">
+                  {activityView.paymentLabel}
+                </p>
+              </div>
+              <div className="text-sm">
+                <p className="text-gray-500">Price per session</p>
+                <p className="font-semibold text-gray-800">
+                  {formatCurrency(sessionRate)}
+                </p>
+              </div>
+              <div className="text-sm">
+                <p className="text-gray-500">Completed sessions</p>
+                <p className="font-semibold text-gray-800">
+                  {sessionDetails.length} x {sessionDuration}
+                </p>
+              </div>
+              <div className="rounded-lg bg-[#25476a] p-4 text-white md:text-right">
+                <p className="text-xs font-medium text-white/75">Total amount</p>
+                <p className="mt-1 text-2xl font-bold">
+                  {formatCurrency(totalMentorPayment)}
+                </p>
               </div>
             </div>
           </div>
@@ -393,6 +478,7 @@ function CourseDetailPage({
         courseName={course.courseName}
         teachingMethod={course.method.label}
         progress={course.progress}
+        initialPaymentType={selectedPaymentType}
         onSubmitClaim={({ paymentType, etimsDocument }) =>
           onSubmitClaim({
             course,

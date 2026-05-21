@@ -25,29 +25,29 @@ export type TeachingMethodType =
 
 const teachingMethodMeta = {
   physical: {
-    label: "Physical Location",
+    label: "Physical Classes",
     icon: MapPin,
-    description: "In-person delivery",
+    description: "In-person class delivery at a physical venue",
   },
   online: {
-    label: "Online Sessions",
+    label: "Online Classes",
     icon: Monitor,
-    description: "Virtual delivery",
+    description: "Virtual class delivery outside Google Meet",
   },
   home: {
-    label: "Home Locations",
+    label: "Home Sessions",
     icon: Home,
-    description: "Home-based delivery",
+    description: "Home-based learner sessions",
   },
   center: {
-    label: "Centers",
+    label: "Center Sessions",
     icon: Building2,
-    description: "Center-based delivery",
+    description: "Center-based group delivery",
   },
   "google-meet": {
-    label: "Google Meet Sessions",
+    label: "Google Meet Classes",
     icon: Video,
-    description: "Live Google Meet delivery",
+    description: "Live class delivery through Google Meet",
   },
 };
 
@@ -203,6 +203,9 @@ function formatMetricValue(metric: CourseProgressRecord["metrics"][number]) {
 
 export function TeachingMethodCard({ course, onSubmitClaim }: TeachingMethodCardProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedPaymentType, setSelectedPaymentType] = useState<"full" | "advance">(
+    "advance",
+  );
   const method = teachingMethodMeta[course.teachingMethod];
   const Icon = method.icon;
 
@@ -283,14 +286,31 @@ export function TeachingMethodCard({ course, onSubmitClaim }: TeachingMethodCard
             })}
           </div>
 
-          {/* Request Payment Button */}
-          <Button
-            onClick={() => setIsDialogOpen(true)}
-            disabled={!isEligibleForAdvance}
-            className="w-full bg-[#25476a] hover:bg-[#25476a]/90 disabled:bg-gray-300"
-          >
-            {isEligibleForAdvance ? "Request Payment" : "Progress below 30% threshold"}
-          </Button>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Button
+              type="button"
+              onClick={() => {
+                setSelectedPaymentType("advance");
+                setIsDialogOpen(true);
+              }}
+              disabled={!isEligibleForAdvance}
+              className="bg-[#25476a] hover:bg-[#25476a]/90 disabled:bg-gray-300"
+            >
+              Advance Payment
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setSelectedPaymentType("full");
+                setIsDialogOpen(true);
+              }}
+              disabled={!isEligibleForFull}
+              variant="outline"
+              className="border-[#25476a] text-[#25476a] hover:bg-[#25476a]/10 disabled:border-gray-200 disabled:text-gray-400"
+            >
+              Full Payment
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -300,6 +320,7 @@ export function TeachingMethodCard({ course, onSubmitClaim }: TeachingMethodCard
         courseName={course.courseName}
         teachingMethod={method.label}
         progress={overallProgress}
+        initialPaymentType={selectedPaymentType}
         onSubmitClaim={({ paymentType, etimsDocument }) =>
           onSubmitClaim({
             course,

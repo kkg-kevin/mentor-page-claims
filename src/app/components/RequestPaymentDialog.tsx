@@ -9,7 +9,6 @@ import {
 } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Upload, FileText, X, Eye } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +18,7 @@ interface RequestPaymentDialogProps {
   courseName: string;
   teachingMethod: string;
   progress: number;
+  initialPaymentType?: "full" | "advance";
   onSubmitClaim: (claim: {
     paymentType: "full" | "advance";
     etimsDocument: string;
@@ -31,19 +31,18 @@ export function RequestPaymentDialog({
   courseName,
   teachingMethod,
   progress,
+  initialPaymentType = "advance",
   onSubmitClaim,
 }: RequestPaymentDialogProps) {
-  const [paymentType, setPaymentType] = useState<"full" | "advance">("full");
+  const [paymentType, setPaymentType] = useState<"full" | "advance">(initialPaymentType);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const isFullPaymentEligible = progress >= 100;
-
   useEffect(() => {
     if (open) {
-      setPaymentType(isFullPaymentEligible ? "full" : "advance");
+      setPaymentType(initialPaymentType);
     }
-  }, [isFullPaymentEligible, open]);
+  }, [initialPaymentType, open]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -101,14 +100,16 @@ export function RequestPaymentDialog({
 
     // Reset form
     handleRemoveFile();
-    setPaymentType("full");
+    setPaymentType(initialPaymentType);
   };
+
+  const paymentTypeLabel = paymentType === "full" ? "Full Payment" : "Advance Payment";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="text-[#25476a]">Request Payment</DialogTitle>
+          <DialogTitle className="text-[#25476a]">Request {paymentTypeLabel}</DialogTitle>
           <DialogDescription>
             Submit a payment claim for {courseName} via {teachingMethod} (Progress:{" "}
             {Math.round(progress)}%)
@@ -116,41 +117,18 @@ export function RequestPaymentDialog({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Payment Type Selection */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Payment Type</Label>
-            <RadioGroup
-              value={paymentType}
-              onValueChange={(value) => setPaymentType(value as "full" | "advance")}
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem
-                  value="full"
-                  id="full"
-                  disabled={!isFullPaymentEligible}
-                />
-                <Label
-                  htmlFor="full"
-                  className={`flex-1 cursor-pointer ${
-                    !isFullPaymentEligible ? "text-gray-400" : ""
-                  }`}
-                >
-                  Full Payment
-                  <span className="block text-xs text-gray-500">
-                    Requires 100% completion
-                  </span>
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="advance" id="advance" />
-                <Label htmlFor="advance" className="flex-1 cursor-pointer">
-                  Advance Payment
-                  <span className="block text-xs text-gray-500">
-                    Requires at least 30% completion
-                  </span>
-                </Label>
-              </div>
-            </RadioGroup>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Payment Type
+            </p>
+            <p className="mt-1 text-lg font-semibold text-[#25476a]">
+              {paymentTypeLabel}
+            </p>
+            <p className="mt-1 text-sm text-gray-600">
+              {paymentType === "full"
+                ? "Full payment requires 100% completion."
+                : "Advance payment requires at least 30% completion."}
+            </p>
           </div>
 
           {/* eTIMS Document Upload */}
@@ -224,7 +202,7 @@ export function RequestPaymentDialog({
             onClick={handleSubmit}
             className="bg-[#25476a] hover:bg-[#25476a]/90"
           >
-            Submit Claim
+            Submit {paymentTypeLabel} Claim
           </Button>
         </DialogFooter>
       </DialogContent>
