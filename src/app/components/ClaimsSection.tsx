@@ -8,6 +8,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { ChevronDown, ChevronUp, FileText, Calendar, DollarSign } from "lucide-react";
 
 export interface Claim {
@@ -83,21 +91,56 @@ interface ClaimsSectionProps {
   claims: Claim[];
 }
 
+const statusFilterOptions: Array<{
+  value: Claim["status"];
+  label: string;
+}> = [
+  { value: "paid", label: "Paid" },
+  { value: "pending", label: "Pending" },
+  { value: "rejected", label: "Rejected" },
+];
+
+const methodFilterOptions = [
+  "Physical Classes",
+  "Online Classes",
+  "Home Sessions",
+  "Center Sessions",
+  "Google Meet Classes",
+];
+
+function getMultiFilterLabel(
+  placeholder: string,
+  selectedValues: string[],
+  options: Array<{ value: string; label: string }>,
+) {
+  if (selectedValues.length === 0) {
+    return placeholder;
+  }
+
+  if (selectedValues.length === 1) {
+    return options.find((option) => option.value === selectedValues[0])?.label ?? placeholder;
+  }
+
+  return `${selectedValues.length} selected`;
+}
+
 export function ClaimsSection({ claims }: ClaimsSectionProps) {
   const [expandedClaim, setExpandedClaim] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [methodFilter, setMethodFilter] = useState<string>("all");
+  const [statusFilters, setStatusFilters] = useState<Array<Claim["status"]>>([]);
+  const [methodFilters, setMethodFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string>("date-desc");
 
   // Filter claims
   let filteredClaims = claims;
 
-  if (statusFilter !== "all") {
-    filteredClaims = filteredClaims.filter((claim) => claim.status === statusFilter);
+  if (statusFilters.length > 0) {
+    filteredClaims = filteredClaims.filter((claim) => statusFilters.includes(claim.status));
   }
 
-  if (methodFilter !== "all") {
-    filteredClaims = filteredClaims.filter((claim) => claim.teachingMethod === methodFilter);
+  if (methodFilters.length > 0) {
+    filteredClaims = filteredClaims.filter((claim) =>
+      methodFilters.includes(claim.teachingMethod),
+    );
   }
 
   // Sort claims
@@ -144,36 +187,90 @@ export function ClaimsSection({ claims }: ClaimsSectionProps) {
     }).format(amount);
   };
 
+  const toggleStatusFilter = (status: Claim["status"]) => {
+    setStatusFilters((currentFilters) =>
+      currentFilters.includes(status)
+        ? currentFilters.filter((item) => item !== status)
+        : [...currentFilters, status],
+    );
+  };
+
+  const toggleMethodFilter = (method: string) => {
+    setMethodFilters((currentFilters) =>
+      currentFilters.includes(method)
+        ? currentFilters.filter((item) => item !== method)
+        : [...currentFilters, method],
+    );
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold text-[#25476a]">Payment Claims</h2>
-        <div className="flex gap-3">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap gap-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex h-9 w-[170px] items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-xs hover:bg-gray-50"
+              >
+                <span className="truncate">
+                  {getMultiFilterLabel("Status", statusFilters, statusFilterOptions)}
+                </span>
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[190px]">
+              <DropdownMenuItem onClick={() => setStatusFilters([])}>
+                Clear status filter
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {statusFilterOptions.map((option) => (
+                <DropdownMenuCheckboxItem
+                  key={option.value}
+                  checked={statusFilters.includes(option.value)}
+                  onCheckedChange={() => toggleStatusFilter(option.value)}
+                  onSelect={(event) => event.preventDefault()}
+                >
+                  {option.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          <Select value={methodFilter} onValueChange={setMethodFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Teaching Method" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Methods</SelectItem>
-              <SelectItem value="Physical Classes">Physical Classes</SelectItem>
-              <SelectItem value="Home Sessions">Home Sessions</SelectItem>
-              <SelectItem value="Online Classes">Online Classes</SelectItem>
-              <SelectItem value="Google Meet Classes">Google Meet Classes</SelectItem>
-              <SelectItem value="Center Sessions">Center Sessions</SelectItem>
-            </SelectContent>
-          </Select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex h-9 w-[190px] items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-xs hover:bg-gray-50"
+              >
+                <span className="truncate">
+                  {getMultiFilterLabel(
+                    "Type",
+                    methodFilters,
+                    methodFilterOptions.map((method) => ({ value: method, label: method })),
+                  )}
+                </span>
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[220px]">
+              <DropdownMenuItem onClick={() => setMethodFilters([])}>
+                Clear type filter
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {methodFilterOptions.map((method) => (
+                <DropdownMenuCheckboxItem
+                  key={method}
+                  checked={methodFilters.includes(method)}
+                  onCheckedChange={() => toggleMethodFilter(method)}
+                  onSelect={(event) => event.preventDefault()}
+                >
+                  {method}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-[150px]">

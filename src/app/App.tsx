@@ -9,7 +9,6 @@ import {
 } from "./components/TeachingMethodCard";
 import { ClaimsSection, initialClaims, type Claim } from "./components/ClaimsSection";
 import { RequestPaymentDialog } from "./components/RequestPaymentDialog";
-import { StatsOverview } from "./components/StatsOverview";
 import { Toaster } from "./components/ui/sonner";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
@@ -21,7 +20,15 @@ import {
   TableHeader,
   TableRow,
 } from "./components/ui/table";
-import { ArrowLeft } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./components/ui/dropdown-menu";
+import { ArrowLeft, Check, ChevronDown, Download, X } from "lucide-react";
 
 type AssignmentState = "issued" | "submitted" | "graded";
 
@@ -37,20 +44,25 @@ const studentCountsByCourseId: Record<string, number> = {
   "google-meet-ai-basics": 20,
 };
 
-const assignmentStateStyles: Record<AssignmentState, string> = {
-  issued: "bg-gray-100 text-gray-700 hover:bg-gray-100",
-  submitted: "bg-[#feb139] text-[#25476a] hover:bg-[#feb139]",
-  graded: "bg-green-500 text-white hover:bg-green-500",
-};
-
-const assignmentStateLabels: Record<AssignmentState, string> = {
-  issued: "Assignment issued",
-  submitted: "Assignment submitted",
-  graded: "Assignment graded",
-};
+const assignmentSteps: Array<{ state: AssignmentState; label: string }> = [
+  { state: "issued", label: "Issued" },
+  { state: "submitted", label: "Submitted" },
+  { state: "graded", label: "Graded" },
+];
 
 const sessionRate = 900;
 const sessionDuration = "1 hour";
+
+const teachingMethodFilterOptions: Array<{
+  value: TeachingMethodType;
+  label: string;
+}> = [
+  { value: "physical", label: "Physical Classes" },
+  { value: "online", label: "Online Classes" },
+  { value: "home", label: "Home Sessions" },
+  { value: "center", label: "Center Sessions" },
+  { value: "google-meet", label: "Google Meet Classes" },
+];
 
 const activityViewByMethod: Record<
   TeachingMethodType,
@@ -192,6 +204,34 @@ function formatMetricValue(metric: CourseProgressRecord["metrics"][number]) {
   return `${percentage}%`;
 }
 
+function isAssignmentStepDone(
+  currentState: AssignmentState,
+  stepState: AssignmentState,
+) {
+  const stateOrder: Record<AssignmentState, number> = {
+    issued: 0,
+    submitted: 1,
+    graded: 2,
+  };
+
+  return stateOrder[currentState] >= stateOrder[stepState];
+}
+
+function getTimelineFilterLabel(selectedValues: TeachingMethodType[]) {
+  if (selectedValues.length === 0) {
+    return "Filter by type";
+  }
+
+  if (selectedValues.length === 1) {
+    return (
+      teachingMethodFilterOptions.find((option) => option.value === selectedValues[0])
+        ?.label ?? "Filter by type"
+    );
+  }
+
+  return `${selectedValues.length} types selected`;
+}
+
 function CourseDetailPage({
   course,
   studentCount,
@@ -225,7 +265,28 @@ function CourseDetailPage({
   const plannedSessions = getMetric(course, "Sessions")?.total ?? sessionDetails.length;
   const completedSessionProgress =
     plannedSessions > 0 ? (sessionDetails.length / plannedSessions) * 100 : 0;
-  const summaryText = `${sessionDetails.length} ${activityView.sessionHeading.toLowerCase()} completed. ${createdReports} ${activityView.reportHeading.toLowerCase()}s created. ${gradedAssignments} assignments graded. Estimated mentor payment is ${formatCurrency(totalMentorPayment)}.`;
+  const summaryStats = [
+    {
+      label: "Completed",
+      value: `${sessionDetails.length}/${plannedSessions}`,
+      helper: activityView.sessionHeading.toLowerCase(),
+    },
+    {
+      label: "Reports",
+      value: String(createdReports),
+      helper: "submitted",
+    },
+    {
+      label: "Assignments",
+      value: String(gradedAssignments),
+      helper: "graded",
+    },
+    {
+      label: "Estimated payment",
+      value: formatCurrency(totalMentorPayment),
+      helper: "mentor total",
+    },
+  ];
   const isEligibleForAdvance = course.progress >= 30;
 
   return (
@@ -256,9 +317,20 @@ function CourseDetailPage({
                     <p className="text-sm text-gray-600">{course.method.label}</p>
                   </div>
                 </div>
-                <p className="mt-3 max-w-2xl text-sm text-gray-600">
-                  {summaryText}
-                </p>
+                <div className="mt-4 grid max-w-4xl grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {summaryStats.map((stat) => (
+                    <div
+                      key={stat.label}
+                      className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2"
+                    >
+                      <p className="text-xs font-medium text-gray-500">{stat.label}</p>
+                      <p className="mt-1 text-lg font-semibold text-[#25476a]">
+                        {stat.value}
+                      </p>
+                      <p className="text-xs text-gray-500">{stat.helper}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -416,25 +488,59 @@ function CourseDetailPage({
                   <span className="mr-3 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:hidden">
                     {activityView.assignmentHeading}
                   </span>
-                  <Badge className={assignmentStateStyles[session.assignmentState]}>
-                    {assignmentStateLabels[session.assignmentState]}
-                  </Badge>
+                  <div className="grid w-full max-w-[250px] grid-cols-3 overflow-hidden rounded-md border border-gray-200 bg-white lg:mx-auto">
+                    {assignmentSteps.map((step) => {
+                      const isDone = isAssignmentStepDone(
+                        session.assignmentState,
+                        step.state,
+                      );
+                      const Icon = isDone ? Check : X;
+
+                      return (
+                        <div
+                          key={step.state}
+                          className={`flex min-w-0 flex-col items-center justify-center gap-1 border-r border-gray-200 px-2 py-2 text-[11px] font-medium last:border-r-0 ${
+                            isDone
+                              ? "bg-green-50 text-green-700"
+                              : "bg-gray-50 text-gray-400"
+                          }`}
+                        >
+                          <span
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                              isDone ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500"
+                            }`}
+                          >
+                            <Icon className="h-3 w-3" />
+                          </span>
+                          <span className="truncate text-center leading-none">{step.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="flex items-start lg:justify-center">
                   <span className="mr-3 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:hidden">
                     {activityView.reportHeading}
                   </span>
-                  <Badge
-                    variant="outline"
-                    className={
-                      session.reportCreated
-                        ? "border-green-200 bg-green-50 text-green-700"
-                        : "border-gray-200 bg-gray-50 text-gray-600"
-                    }
-                  >
-                    {session.reportCreated ? "Report created" : "Report not created"}
-                  </Badge>
+                  {session.reportCreated ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 border-green-200 bg-green-50 px-2 text-green-700 hover:bg-green-100 hover:text-green-800"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Download
+                    </Button>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="border-[#feb139]/30 bg-[#feb139]/10 text-[#25476a]"
+                    >
+                      Pending
+                    </Badge>
+                  )}
                 </div>
               </div>
             ))}
@@ -520,6 +626,9 @@ export default function App() {
     progressTimeline[0]?.id ?? "",
   );
   const [showAllCourses, setShowAllCourses] = useState(false);
+  const [timelineMethodFilters, setTimelineMethodFilters] = useState<
+    TeachingMethodType[]
+  >([]);
   const [detailCourseId, setDetailCourseId] = useState<string | null>(null);
   const detailCourse = detailCourseId
     ? progressTimeline.find((item) => item.id === detailCourseId)
@@ -528,7 +637,13 @@ export default function App() {
     ? studentCountsByCourseId[detailCourse.id] ?? 12
     : 0;
   const detailSessionDetails = detailCourse ? getSessionDetails(detailCourse) : [];
-  const visibleTimeline = showAllCourses ? progressTimeline : progressTimeline.slice(0, 3);
+  const filteredTimeline =
+    timelineMethodFilters.length === 0
+      ? progressTimeline
+      : progressTimeline.filter((item) =>
+          timelineMethodFilters.includes(item.teachingMethod),
+        );
+  const visibleTimeline = showAllCourses ? filteredTimeline : filteredTimeline.slice(0, 3);
 
   const handleSubmitClaim = ({
     course,
@@ -584,12 +699,17 @@ export default function App() {
     setDetailCourseId(courseId);
   };
 
+  const toggleTimelineMethodFilter = (method: TeachingMethodType) => {
+    setTimelineMethodFilters((currentFilters) =>
+      currentFilters.includes(method)
+        ? currentFilters.filter((item) => item !== method)
+        : [...currentFilters, method],
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-6 space-y-8">
-        {/* Stats Overview */}
-        <StatsOverview />
-
         {detailCourse ? (
           <CourseDetailPage
             course={detailCourse}
@@ -607,21 +727,57 @@ export default function App() {
                   <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <h3 className="font-semibold text-[#25476a]">
-                        Course Activity Timeline
+                        Mentor Claims by Course
                       </h3>
                       <p className="mt-1 text-sm text-gray-600">
-                        Most recent progress is listed first. Select a course to view the general overview.
+                        Review claim-ready course progress by delivery type and open a course to request payment.
                       </p>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowAllCourses((current) => !current)}
-                      className="self-start sm:self-auto"
-                    >
-                      {showAllCourses ? "Show latest" : "View all"}
-                    </Button>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex h-9 w-[210px] items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-xs hover:bg-gray-50"
+                          >
+                            <span className="truncate">
+                              {getTimelineFilterLabel(timelineMethodFilters)}
+                            </span>
+                            <ChevronDown className="h-4 w-4 text-gray-500" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[230px]">
+                          <DropdownMenuItem onClick={() => setTimelineMethodFilters([])}>
+                            Clear type filter
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {teachingMethodFilterOptions.map((option) => (
+                            <DropdownMenuCheckboxItem
+                              key={option.value}
+                              checked={timelineMethodFilters.includes(option.value)}
+                              onCheckedChange={() =>
+                                toggleTimelineMethodFilter(option.value)
+                              }
+                              onSelect={(event) => event.preventDefault()}
+                            >
+                              {option.label}
+                            </DropdownMenuCheckboxItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      {!showAllCourses && filteredTimeline.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllCourses(true)}
+                          className="self-start text-sm font-semibold text-[#25476a] underline-offset-4 hover:text-[#38aae1] hover:underline sm:self-auto"
+                        >
+                          View all
+                        </button>
+                      )}
+                      <span className="text-xs text-gray-500">
+                        Showing {visibleTimeline.length} of {filteredTimeline.length}
+                      </span>
+                    </div>
                   </div>
                   <Table>
                     <TableHeader>
@@ -634,7 +790,14 @@ export default function App() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {visibleTimeline.map((item) => {
+                      {visibleTimeline.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="px-5 py-10 text-center text-gray-500">
+                            No courses found matching this type.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        visibleTimeline.map((item) => {
                         const Icon = item.method.icon;
                         const isSelected = selectedCourseId === item.id;
 
@@ -703,21 +866,20 @@ export default function App() {
                               </div>
                             </TableCell>
                             <TableCell className="pr-5 text-right">
-                              <Button
+                              <button
                                 type="button"
-                                variant="outline"
-                                size="sm"
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   handleOpenCourseDetail(item.id);
                                 }}
+                                className="text-sm font-semibold text-[#25476a] underline-offset-4 hover:text-[#38aae1] hover:underline"
                               >
                                 View more
-                              </Button>
+                              </button>
                             </TableCell>
                           </TableRow>
                         );
-                      })}
+                      }))}
                     </TableBody>
                   </Table>
                 </div>
