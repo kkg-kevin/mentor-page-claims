@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { MapPin, Home, Monitor } from "lucide-react";
+import { Building2, Home, MapPin, Monitor, Video } from "lucide-react";
 import { useState } from "react";
 import { RequestPaymentDialog } from "./RequestPaymentDialog";
 
@@ -16,7 +16,12 @@ interface TeachingMethodCardProps {
   }) => void;
 }
 
-export type TeachingMethodType = "physical" | "home" | "online";
+export type TeachingMethodType =
+  | "physical"
+  | "online"
+  | "home"
+  | "center"
+  | "google-meet";
 
 const teachingMethodMeta = {
   physical: {
@@ -24,15 +29,25 @@ const teachingMethodMeta = {
     icon: MapPin,
     description: "In-person delivery",
   },
+  online: {
+    label: "Online Sessions",
+    icon: Monitor,
+    description: "Virtual delivery",
+  },
   home: {
-    label: "Home Location",
+    label: "Home Locations",
     icon: Home,
     description: "Home-based delivery",
   },
-  online: {
-    label: "Online",
-    icon: Monitor,
-    description: "Virtual delivery",
+  center: {
+    label: "Centers",
+    icon: Building2,
+    description: "Center-based delivery",
+  },
+  "google-meet": {
+    label: "Google Meet Sessions",
+    icon: Video,
+    description: "Live Google Meet delivery",
   },
 };
 
@@ -42,7 +57,7 @@ export interface CourseProgressRecord {
   courseName: string;
   lastUpdated: string;
   metrics: Array<{
-    label: "Course Sessions" | "Lesson Content Covered" | "Learner Attendance" | "Report";
+    label: "Sessions" | "Attendance" | "Report" | "Assignment";
     value: number;
     total: number;
     format: "count" | "percent";
@@ -56,10 +71,10 @@ export const courseProgressRecords: CourseProgressRecord[] = [
     courseName: "Game Design",
     lastUpdated: "May 20, 2026",
     metrics: [
-      { label: "Course Sessions", value: 8, total: 10, format: "count" },
-      { label: "Lesson Content Covered", value: 2, total: 12, format: "count" },
-      { label: "Learner Attendance", value: 85, total: 100, format: "percent" },
+      { label: "Sessions", value: 8, total: 12, format: "count" },
+      { label: "Attendance", value: 85, total: 100, format: "percent" },
       { label: "Report", value: 80, total: 100, format: "percent" },
+      { label: "Assignment", value: 72, total: 100, format: "percent" },
     ],
   },
   {
@@ -68,10 +83,10 @@ export const courseProgressRecords: CourseProgressRecord[] = [
     courseName: "3D Modeling",
     lastUpdated: "May 20, 2026",
     metrics: [
-      { label: "Course Sessions", value: 1, total: 8, format: "count" },
-      { label: "Lesson Content Covered", value: 1, total: 12, format: "count" },
-      { label: "Learner Attendance", value: 24, total: 100, format: "percent" },
+      { label: "Sessions", value: 1, total: 12, format: "count" },
+      { label: "Attendance", value: 24, total: 100, format: "percent" },
       { label: "Report", value: 20, total: 100, format: "percent" },
+      { label: "Assignment", value: 16, total: 100, format: "percent" },
     ],
   },
   {
@@ -80,10 +95,10 @@ export const courseProgressRecords: CourseProgressRecord[] = [
     courseName: "Robotics",
     lastUpdated: "May 19, 2026",
     metrics: [
-      { label: "Course Sessions", value: 12, total: 12, format: "count" },
-      { label: "Lesson Content Covered", value: 12, total: 12, format: "count" },
-      { label: "Learner Attendance", value: 100, total: 100, format: "percent" },
+      { label: "Sessions", value: 12, total: 12, format: "count" },
+      { label: "Attendance", value: 100, total: 100, format: "percent" },
       { label: "Report", value: 100, total: 100, format: "percent" },
+      { label: "Assignment", value: 100, total: 100, format: "percent" },
     ],
   },
   {
@@ -92,10 +107,10 @@ export const courseProgressRecords: CourseProgressRecord[] = [
     courseName: "Animation",
     lastUpdated: "May 18, 2026",
     metrics: [
-      { label: "Course Sessions", value: 6, total: 8, format: "count" },
-      { label: "Lesson Content Covered", value: 2, total: 12, format: "count" },
-      { label: "Learner Attendance", value: 76, total: 100, format: "percent" },
+      { label: "Sessions", value: 6, total: 12, format: "count" },
+      { label: "Attendance", value: 76, total: 100, format: "percent" },
       { label: "Report", value: 70, total: 100, format: "percent" },
+      { label: "Assignment", value: 62, total: 100, format: "percent" },
     ],
   },
   {
@@ -104,10 +119,10 @@ export const courseProgressRecords: CourseProgressRecord[] = [
     courseName: "Animation",
     lastUpdated: "May 17, 2026",
     metrics: [
-      { label: "Course Sessions", value: 7, total: 10, format: "count" },
-      { label: "Lesson Content Covered", value: 2, total: 12, format: "count" },
-      { label: "Learner Attendance", value: 81, total: 100, format: "percent" },
+      { label: "Sessions", value: 7, total: 12, format: "count" },
+      { label: "Attendance", value: 81, total: 100, format: "percent" },
       { label: "Report", value: 74, total: 100, format: "percent" },
+      { label: "Assignment", value: 69, total: 100, format: "percent" },
     ],
   },
   {
@@ -116,10 +131,10 @@ export const courseProgressRecords: CourseProgressRecord[] = [
     courseName: "Game Design",
     lastUpdated: "May 16, 2026",
     metrics: [
-      { label: "Course Sessions", value: 5, total: 8, format: "count" },
-      { label: "Lesson Content Covered", value: 2, total: 12, format: "count" },
-      { label: "Learner Attendance", value: 74, total: 100, format: "percent" },
+      { label: "Sessions", value: 5, total: 12, format: "count" },
+      { label: "Attendance", value: 74, total: 100, format: "percent" },
       { label: "Report", value: 66, total: 100, format: "percent" },
+      { label: "Assignment", value: 58, total: 100, format: "percent" },
     ],
   },
   {
@@ -128,10 +143,34 @@ export const courseProgressRecords: CourseProgressRecord[] = [
     courseName: "Robotics",
     lastUpdated: "May 15, 2026",
     metrics: [
-      { label: "Course Sessions", value: 4, total: 8, format: "count" },
-      { label: "Lesson Content Covered", value: 2, total: 12, format: "count" },
-      { label: "Learner Attendance", value: 69, total: 100, format: "percent" },
+      { label: "Sessions", value: 4, total: 12, format: "count" },
+      { label: "Attendance", value: 69, total: 100, format: "percent" },
       { label: "Report", value: 58, total: 100, format: "percent" },
+      { label: "Assignment", value: 44, total: 100, format: "percent" },
+    ],
+  },
+  {
+    id: "center-creative-coding",
+    teachingMethod: "center",
+    courseName: "Creative Coding",
+    lastUpdated: "May 14, 2026",
+    metrics: [
+      { label: "Sessions", value: 9, total: 12, format: "count" },
+      { label: "Attendance", value: 88, total: 100, format: "percent" },
+      { label: "Report", value: 82, total: 100, format: "percent" },
+      { label: "Assignment", value: 79, total: 100, format: "percent" },
+    ],
+  },
+  {
+    id: "google-meet-ai-basics",
+    teachingMethod: "google-meet",
+    courseName: "AI Basics",
+    lastUpdated: "May 13, 2026",
+    metrics: [
+      { label: "Sessions", value: 3, total: 12, format: "count" },
+      { label: "Attendance", value: 71, total: 100, format: "percent" },
+      { label: "Report", value: 45, total: 100, format: "percent" },
+      { label: "Assignment", value: 38, total: 100, format: "percent" },
     ],
   },
 ];
@@ -153,11 +192,13 @@ export function getTeachingMethodMeta(type: TeachingMethodType) {
 }
 
 function formatMetricValue(metric: CourseProgressRecord["metrics"][number]) {
+  const percentage = Math.round((metric.value / metric.total) * 100);
+
   if (metric.format === "percent") {
-    return `${metric.value}%`;
+    return `${percentage}%`;
   }
 
-  return `${metric.value}/${metric.total}`;
+  return `${metric.value}/${metric.total} (${percentage}%)`;
 }
 
 export function TeachingMethodCard({ course, onSubmitClaim }: TeachingMethodCardProps) {
@@ -176,7 +217,12 @@ export function TeachingMethodCard({ course, onSubmitClaim }: TeachingMethodCard
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Icon className="h-5 w-5" />
-              <CardTitle className="text-lg">{course.courseName}</CardTitle>
+              <div>
+                <CardTitle className="text-lg">{course.courseName}</CardTitle>
+                <p className="mt-0.5 text-xs font-normal text-white/80">
+                  Course Activity Outline
+                </p>
+              </div>
             </div>
             <Badge
               variant={isEligibleForFull ? "default" : "secondary"}
@@ -203,7 +249,7 @@ export function TeachingMethodCard({ course, onSubmitClaim }: TeachingMethodCard
           {/* Overall Progress */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="font-medium text-gray-700">Course Progress</span>
+              <span className="font-medium text-gray-700">Overall Course Progress</span>
               <span className="text-[#25476a] font-semibold">{Math.round(overallProgress)}%</span>
             </div>
             <div className="h-3 w-full bg-gray-200 rounded-full overflow-hidden">
